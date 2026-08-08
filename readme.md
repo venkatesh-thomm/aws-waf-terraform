@@ -1,4 +1,3 @@
-# AWS WAF + ALB + RHEL Infrastructure with Terraform
 
 ## Overview
 
