@@ -1,3 +1,4 @@
+# Alarm for WAF blocked requests
 resource "aws_cloudwatch_metric_alarm" "waf_blocked_requests" {
   alarm_name        = "waf-lab-blocked-requests"
   alarm_description = "WAF blocked more than 10 requests in 5 minutes"
@@ -12,9 +13,9 @@ resource "aws_cloudwatch_metric_alarm" "waf_blocked_requests" {
   }
 
   statistic           = "Sum"
-  period              = 300
-  evaluation_periods  = 1
-  threshold           = 10
+  period              = 300 # 5 minutes
+  evaluation_periods  = 1   # Evaluate over 1 period
+  threshold           = 5   # Trigger alarm if 5 or more blocked requests occur in 5 minutes
   comparison_operator = "GreaterThanThreshold"
 
   alarm_actions = [
@@ -23,5 +24,32 @@ resource "aws_cloudwatch_metric_alarm" "waf_blocked_requests" {
 
   tags = merge(local.common_tags, {
     Name = "waf-lab-blocked-requests-alarm"
+  })
+}
+
+## Alarm for ALB 5xx errors
+resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
+  alarm_name        = "waf-lab-alb-5xx"
+  alarm_description = "Alarm when ALB returns 5xx errors"
+
+  namespace   = "AWS/ApplicationELB"
+  metric_name = "HTTPCode_ELB_5XX_Count"
+
+  dimensions = {
+    LoadBalancer = aws_lb.application.arn_suffix
+  }
+
+  statistic           = "Sum"
+  period              = 300 # 5 minutes
+  evaluation_periods  = 1   # Evaluate over 1 period
+  threshold           = 5   # Trigger alarm if 5 or more 5xx errors occur in 5 minutes
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+
+  alarm_actions = [
+    aws_sns_topic.waf_alerts.arn
+  ]
+
+  tags = merge(local.common_tags, {
+    Name = "waf-lab-alb-5xx-alarm"
   })
 }

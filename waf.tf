@@ -1,3 +1,4 @@
+# WAF Configuration for block specific IP addresses and monitor blocked requests
 resource "aws_wafv2_ip_set" "blocked_ips" {
   name               = "waf-blocked-ips"
   scope              = "REGIONAL"
@@ -12,6 +13,7 @@ resource "aws_wafv2_ip_set" "blocked_ips" {
   })
 }
 
+# WAF Web ACL Configuration for ALB
 resource "aws_wafv2_web_acl" "alb_waf" {
   name  = "waf-web-acl"
   scope = "REGIONAL"

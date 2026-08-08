@@ -1,3 +1,4 @@
+# CloudWatch Dashboard for WAF
 resource "aws_cloudwatch_dashboard" "waf_dashboard" {
   dashboard_name = "waf-lab-dashboard"
 
