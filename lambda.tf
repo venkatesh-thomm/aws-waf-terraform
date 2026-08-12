@@ -134,9 +134,10 @@ resource "aws_lambda_permission" "allow_waf_logs" {
 
   principal = "logs.amazonaws.com"
 
-  source_arn = aws_cloudwatch_log_group.waf.arn
-}
+  source_arn = "${aws_cloudwatch_log_group.waf.arn}:*"
 
+  source_account = data.aws_caller_identity.current.account_id
+}
 
 # ============================================================
 # CLOUDWATCH LOG SUBSCRIPTION FILTER
