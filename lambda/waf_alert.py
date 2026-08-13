@@ -5,19 +5,22 @@ import base64
 import boto3
 
 
-sns = boto3.client("sns")
+sqs = boto3.client("sqs")
 
-SNS_TOPIC_ARN = os.environ["SNS_TOPIC_ARN"]
+SQS_QUEUE_URL = os.environ["SQS_QUEUE_URL"]
 
 
 def lambda_handler(event, context):
 
-    print("Received event")
+    print("Received WAF event")
 
-    # CloudWatch Logs subscription data
-    compressed_payload = base64.b64decode(event["awslogs"]["data"])
+    compressed_payload = base64.b64decode(
+        event["awslogs"]["data"]
+    )
 
-    uncompressed_payload = gzip.decompress(compressed_payload)
+    uncompressed_payload = gzip.decompress(
+        compressed_payload
+    )
 
     payload = json.loads(uncompressed_payload)
 
@@ -28,34 +31,42 @@ def lambda_handler(event, context):
         message = json.loads(log_event["message"])
 
         action = message.get("action")
-        client_ip = message.get("httpRequest", {}).get("clientIp")
-        country = message.get("httpRequest", {}).get("country")
-        uri = message.get("httpRequest", {}).get("uri")
-        method = message.get("httpRequest", {}).get("httpMethod")
-        host = message.get("httpRequest", {}).get("headers", [])
 
-        alert_message = f"""
-WAF SECURITY ALERT
+        client_ip = message.get(
+            "httpRequest", {}
+        ).get("clientIp")
 
-Action      : {action}
-Client IP   : {client_ip}
-Country     : {country}
-HTTP Method : {method}
-URI         : {uri}
+        country = message.get(
+            "httpRequest", {}
+        ).get("country")
 
-Host Information:
-{json.dumps(host, indent=2)}
-"""
+        uri = message.get(
+            "httpRequest", {}
+        ).get("uri")
 
-        print(alert_message)
+        method = message.get(
+            "httpRequest", {}
+        ).get("httpMethod")
 
-        sns.publish(
-            TopicArn=SNS_TOPIC_ARN,
-            Subject="WAF Security Alert - Request Blocked",
-            Message=alert_message
+        alert = {
+            "action": action,
+            "client_ip": client_ip,
+            "country": country,
+            "uri": uri,
+            "method": method
+        }
+
+        print(
+            "Sending alert to SQS:",
+            json.dumps(alert)
+        )
+
+        sqs.send_message(
+            QueueUrl=SQS_QUEUE_URL,
+            MessageBody=json.dumps(alert)
         )
 
     return {
         "statusCode": 200,
-        "body": "WAF event processed successfully"
+        "body": "WAF event sent to SQS"
     }
