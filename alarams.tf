@@ -44,7 +44,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   evaluation_periods  = 1   # Evaluate over 1 period
   threshold           = 5   # Trigger alarm if 5 or more 5xx errors occur in 5 minutes
   comparison_operator = "GreaterThanOrEqualToThreshold"
-
+  treat_missing_data  = "notBreaching"
   alarm_actions = [
     aws_sns_topic.waf_alerts.arn
   ]
@@ -72,7 +72,7 @@ resource "aws_cloudwatch_metric_alarm" "target_5xx" {
   evaluation_periods  = 1
   threshold           = 5
   comparison_operator = "GreaterThanOrEqualToThreshold"
-
+  treat_missing_data  = "notBreaching"
   alarm_actions = [
     aws_sns_topic.waf_alerts.arn
   ]

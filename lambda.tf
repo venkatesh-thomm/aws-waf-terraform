@@ -92,7 +92,8 @@ data "archive_file" "waf_alert_lambda" {
 
 
 # ============================================================
-# LAMBDA FUNCTION
+# LAMBDA FUNCTION 
+# Receive the WAF event and put the important information into SQS.
 # ============================================================
 
 resource "aws_lambda_function" "waf_alert" {

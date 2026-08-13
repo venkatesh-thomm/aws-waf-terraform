@@ -8,7 +8,7 @@ resource "aws_wafv2_ip_set" "blocked_ips" {
   ip_address_version = "IPV4"
 
   addresses = [
-    "103.187.217.252/32"
+    "103.187.217.239/32"
   ]
 
   tags = merge(local.common_tags, {

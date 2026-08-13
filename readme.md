@@ -1,62 +1,96 @@
+# AWS WAF Security & Monitoring Lab
 
 ## Overview
 
 This project provisions a secure and monitored AWS web application infrastructure using **Terraform**.
 
+The environment demonstrates how to protect an internet-facing Application Load Balancer using **AWS WAF**, monitor infrastructure using **Amazon CloudWatch**, collect security and network logs, and automatically notify administrators when WAF requests are blocked.
 
-## Architecture
+The project also demonstrates:
+
+- Infrastructure as Code using Terraform
+- AWS WAF protection
+- ALB and EC2 deployment
+- HTTPS
+- CloudWatch monitoring
+- CloudWatch alarms
+- SNS notifications
+- Python Lambda automation
+- SQS and Dead Letter Queue
+- IAM least privilege
+- AWS Systems Manager (SSM)
+- VPC Flow Logs
+- CloudTrail auditing
+
+---
+
+# Architecture
 
 ```text
-                         Internet
-                            |
-                            v
-                    Route 53 / Domain
-                            |
-                            v
-                         AWS WAF
-                     /             \
-                    /               \
-                 BLOCK             ALLOW
-                   |                 |
-                  403                v
-                              Application LB
-                                  :443
-                                    |
-                              Target Group
-                              /           \
-                             /             \
-                            v               v
-                       RHEL EC2-1      RHEL EC2-2
-                         Apache          Apache
-                            \             /
-                             \           /
-                              \         /
-                           CloudWatch
-                              |
-                    +---------+---------+
-                    |                   |
-                WAF Logs            Dashboard
+                            Internet
+                                |
+                                v
+                         +-------------+
+                         |   AWS WAF   |
+                         |   Web ACL   |
+                         +------+------+
+                                |
+                    +-----------+-----------+
+                    |                       |
+                  ALLOW                   BLOCK
+                    |                       |
+                    v                       v
+                  ALB                 WAF CloudWatch
+                    |                     Logs
+                    |                       |
+                    |                       v
+                    |                 Alert Lambda
+                    |                       |
+                    |                       v
+                    |                      SQS
+                    |                       |
+                    |                       v
+                    |               Processor Lambda
+                    |                       |
+                    |                       v
+                    |                      SNS
+                    |                       |
+                    |                       v
+                    |                     Email
                     |
-                 CloudTrail
-
-WAF Blocked Requests
-        |
-        v
-CloudWatch Alarm
-        |
-        v
-       SNS
-        |
-        v
-      Email
+             +------+------+
+             |             |
+             v             v
+           EC2-1         EC2-2
+          Apache        Apache
+             |             |
+             +------+------+
+                    |
+                    v
+                 Response
 ```
 
+#### Failure Case 
+```
+              SQS Failure Handling
 
-## Terraform Structure
+                    SQS
+                     |
+                     v
+             Processor Lambda
+                     |
+                +----+----+
+                |         |
+             Success    Failure
+                |         |
+                v         v
+               SNS       DLQ
 
-Example project structure:
+```
 
-```text
+### Terraform Structure
+
+``` text 
 terraform-waf/
 │
 ├── provider.tf
@@ -72,93 +106,54 @@ terraform-waf/
 ├── cloudwatch.tf
 ├── sns.tf
 ├── alarms.tf
+├── iam.tf
+├── sqs.tf
+├── lambda.tf
+├── logging.tf
 ├── outputs.tf
-└── terraform.tfvars
-```
-
----
-
-## Terraform Commands
-
-Initialize:
-
-```bash
-terraform init
-```
-
-Format:
-
-```bash
-terraform fmt -recursive
-```
-
-Validate:
-
-```bash
-terraform validate
-```
-
-Review changes:
-
-```bash
-terraform plan
-```
-
-Create/update infrastructure:
-
-```bash
-terraform apply
-```
-
-Destroy infrastructure:
-
-```bash
-terraform destroy
-```
-
----
+├── terraform.tfvars
+│
+└── lambda/
+    ├── waf_alert.py
+    └── waf_processor.py
+```                    
 
 
-## Security Flow
+### Security Flow
 
-```text
 Internet
    |
    v
 AWS WAF
    |
-   +---- Block malicious/blocked traffic
+   +---- BLOCK
+   |       |
+   |       v
+   |   CloudWatch Logs
+   |       |
+   |       v
+   |   Alert Lambda
+   |       |
+   |       v
+   |      SQS
+   |       |
+   |       v
+   | Processor Lambda
+   |       |
+   |       v
+   |      SNS
+   |       |
+   |       v
+   |     Email
    |
-   +---- Allow legitimate traffic
-                |
-                v
-             ALB :443
-                |
-                v
-           Target Group
-             /      \
-            v        v
-          EC2-1    EC2-2
-            |        |
-          Apache   Apache
-```
-
-## Monitoring Flow
-
-```text
-WAF
- |
- +---- CloudWatch Logs
- |
- +---- CloudWatch Metrics
- |
- +---- CloudWatch Dashboard
- |
- +---- CloudWatch Alarm
-            |
-            v
-           SNS
-            |
-            v
-          Email
-```
+   +---- ALLOW
+           |
+           v
+        ALB :443
+           |
+           v
+      Target Group
+        /       \
+       v         v
+    EC2-1      EC2-2
+    Apache     Apache
